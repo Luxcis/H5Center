@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>{{ .Title }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .file-tree {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .directory, .file {
+            margin: 5px 0;
+            padding: 5px 0;
+        }
+
+        .directory > span {
+            cursor: pointer;
+            font-weight: bold;
+            color: #2c3e50;
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .directory > span:hover {
+            background-color: #f0f0f0;
+        }
+
+        .file a {
+            color: #34495e;
+            text-decoration: none;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            display: inline-block;
+        }
+
+        .file a:hover {
+            background-color: #f0f0f0;
+            text-decoration: underline;
+        }
+
+        .children {
+            margin-left: 20px;
+            border-left: 1px solid #ddd;
+            padding-left: 15px;
+            margin-top: 5px;
+        }
+
+        .size {
+            color: #7f8c8d;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .empty {
+            color: #95a5a6;
+            font-style: italic;
+            padding: 5px;
+        }
+
+        .toggle {
+            font-size: 10px;
+            margin-right: 5px;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .folder-icon {
+            color: #f39c12;
+        }
+
+        .file-icon {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>{{ .Title }}</h1>
+
+    {{if .Error}}
+    <div class="error">
+        <strong>错误:</strong> {{ .Error }}
+    </div>
+    {{else}}
+    <div class="file-tree">
+        {{ template "fileNode" dict "Node" .RootNode "FormatSize" .FormatSize }}
+    </div>
+    {{end}}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 添加目录展开/折叠功能
+        document.querySelectorAll('.directory > span').forEach(function (dirSpan) {
+            dirSpan.addEventListener('click', function () {
+                const children = this.nextElementSibling;
+                const toggle = this.querySelector('.toggle');
+
+                if (children.style.display === 'none') {
+                    children.style.display = 'block';
+                    toggle.style.transform = 'rotate(0deg)';
+                    toggle.textContent = '▼ ';
+                } else {
+                    children.style.display = 'none';
+                    toggle.style.transform = 'rotate(-90deg)';
+                    toggle.textContent = '► ';
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
+
+{{define "fileNode"}}
+{{with .Node}}
+{{if .IsDir}}
+<div class="directory">
+    <span><span class="toggle">▼ </span><span class="folder-icon">📁</span> {{.Name}}</span>
+    <div class="children">
+        {{if eq (len .Children) 0}}
+        <div class="empty">空目录</div>
+        {{else}}
+        {{range .Children}}
+        {{template "fileNode" dict "Node" . "FormatSize" $.FormatSize}}
+        {{end}}
+        {{end}}
+    </div>
+</div>
+{{else}}
+<div class="file">
+    <span><span class="file-icon">📄</span> <a href="/h5/{{.Path}}" target="_blank">{{.Name}}</a></span>
+    <span class="size">{{call $.FormatSize .Size}}</span>
+</div>
+{{end}}
+{{end}}
+{{end}}

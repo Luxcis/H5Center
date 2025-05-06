@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 文件上传</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .upload-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #1890ff;
+            outline: none;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-trigger {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            background-color: #f0f2f5;
+            border: 1px dashed #d9d9d9;
+            border-radius: 4px;
+            text-align: center;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-input-wrapper:hover .file-input-trigger {
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+            word-break: break-all;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .upload-btn, .reset-btn {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-btn {
+            background-color: #1890ff;
+        }
+
+        .upload-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        .upload-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background-color: #ff7875;
+            display: none; /* 初始隐藏 */
+        }
+
+        .reset-btn:hover {
+            background-color: #ff9c9c;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #1890ff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status-message {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #52c41a;
+        }
+
+        .error {
+            color: #f5222d;
+        }
+
+        /* 添加重置按钮的动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+<div class="upload-container">
+    <h1>HTML 文件上传</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="fileName">文件名称</label>
+            <input type="text" id="fileName" name="fileName" placeholder="请输入文件名称" required>
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput">选择文件</label>
+            <div class="file-input-wrapper">
+                <div class="file-input-trigger" id="fileTrigger">点击选择 HTML 文件或拖拽文件到此处</div>
+                <input type="file" id="fileInput" name="file" accept=".html,.htm" required>
+            </div>
+            <div class="file-name" id="selectedFileName">未选择文件</div>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="upload-btn" id="uploadBtn" disabled>上传文件</button>
+            <button type="button" class="reset-btn" id="resetBtn">重新上传</button>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="status-message" id="statusMessage"></div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const fileTrigger = document.getElementById('fileTrigger');
+        const selectedFileName = document.getElementById('selectedFileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 文件选择事件
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+
+                // 检查文件类型
+                if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+                    selectedFileName.textContent = '请选择 HTML 文件(.html 或 .htm)';
+                    selectedFileName.className = 'file-name error';
+                    uploadBtn.disabled = true;
+                    return;
+                }
+
+                selectedFileName.textContent = `已选择: ${file.name} (${formatFileSize(file.size)})`;
+                selectedFileName.className = 'file-name';
+
+                // 如果未填写文件名，默认使用选择的文件名（不含扩展名）
+                if (!fileName.value) {
+                    const baseName = file.name.split('.').slice(0, -1).join('.');
+                    fileName.value = baseName;
+                }
+
+                uploadBtn.disabled = false;
+            } else {
+                selectedFileName.textContent = '未选择文件';
+                selectedFileName.className = 'file-name';
+                uploadBtn.disabled = true;
+            }
+        });
+
+        // 触发文件选择
+        fileTrigger.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // 拖放文件功能
+        fileTrigger.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#1890ff';
+            this.style.backgroundColor = '#e6f7ff';
+        });
+
+        fileTrigger.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#d9d9d9';
+            this.style.backgroundColor = '#f0f2f5';
+        });
+
+        fileTrigger.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#d9d9d9';
+            this.style.backgroundColor = '#f0f2f5';
+
+            const dt = e.dataTransfer;
+            if (dt.files.length > 0) {
+                fileInput.files = dt.files;
+
+                // 触发 change 事件
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        });
+
+        // 表单提交
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!fileInput.files.length) {
+                showStatus('请选择文件', 'error');
+                return;
+            }
+
+            if (!fileName.value.trim()) {
+                showStatus('请输入文件名称', 'error');
+                return;
+            }
+
+            uploadFile();
+        });
+
+        // 重置按钮点击事件
+        resetBtn.addEventListener('click', function() {
+            resetForm();
+        });
+
+        // 重置表单函数
+        function resetForm() {
+            // 重置表单字段
+            form.reset();
+            selectedFileName.textContent = '未选择文件';
+            selectedFileName.className = 'file-name';
+
+            // 重置UI状态
+            uploadBtn.disabled = true;
+            resetBtn.style.display = 'none';
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            statusMessage.textContent = '';
+
+            // 重置文件选择区域样式
+            fileTrigger.style.borderColor = '#d9d9d9';
+            fileTrigger.style.backgroundColor = '#f0f2f5';
+
+            // 添加轻微动画效果，提示用户重置成功
+            fileTrigger.classList.add('fade-in');
+            setTimeout(() => fileTrigger.classList.remove('fade-in'), 500);
+        }
+
+        // 上传文件
+        function uploadFile() {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('fileName', fileName.value.trim());
+
+            const xhr = new XMLHttpRequest();
+
+            // 显示进度条
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            uploadBtn.disabled = true;
+            showStatus('正在上传...', '');
+
+            // 监听上传进度
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentage = Math.round((e.loaded * 100) / e.total);
+                    progressBar.style.width = percentage + '%';
+                }
+            });
+
+            // 上传完成
+            xhr.addEventListener('load', function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    showStatus('上传成功！', 'success');
+
+                    // 显示重置按钮
+                    resetBtn.style.display = 'block';
+                    resetBtn.classList.add('fade-in');
+                } else {
+                    showStatus(`上传失败: ${JSON.parse(xhr.responseText).error || '服务器错误'}`, 'error');
+                    uploadBtn.disabled = false;
+                }
+            });
+
+            // 上传出错
+            xhr.addEventListener('error', function() {
+                showStatus('网络错误，上传失败', 'error');
+                uploadBtn.disabled = false;
+            });
+
+            // 上传取消
+            xhr.addEventListener('abort', function() {
+                showStatus('上传已取消', 'error');
+                uploadBtn.disabled = false;
+            });
+
+            // 发送请求
+            xhr.open('POST', '/api/upload', true);
+            xhr.send(formData);
+        }
+
+        // 显示状态信息
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message';
+            if (type) {
+                statusMessage.classList.add(type);
+            }
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    });
+</script>
+</body>
+</html>

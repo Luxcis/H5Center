@@ -31,6 +31,7 @@ func main() {
 	r.StaticFS("/h5", http.Dir("./h5"))
 	r.GET("/", index)
 	r.POST("/api/upload", upload)
+	r.DELETE("/api/delete", deleteH5)
 	err := r.Run(":8080")
 	if err != nil {
 		return
@@ -134,6 +135,70 @@ func upload(c *gin.Context) {
 		"path":            targetPath,
 		"size":            fileSize,
 		"processing_time": processingTime.String(),
+	})
+}
+
+func deleteH5(c *gin.Context) {
+	// 获取要删除的文件路径
+	targetPath := c.Query("path")
+	if targetPath == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  0,
+			"error": "文件路径不能为空",
+		})
+		return
+	}
+
+	if !isPathSafe(targetPath) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  0,
+			"error": "非法的文件路径",
+		})
+		return
+	}
+
+	// 构建完整的文件路径
+	fullPath := filepath.Join("./h5", targetPath)
+
+	// 检查文件是否存在
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":  0,
+				"error": "文件不存在",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  0,
+				"error": "获取文件信息失败: " + err.Error(),
+			})
+		}
+		return
+	}
+
+	// 执行删除操作
+	if fileInfo.IsDir() {
+		// 删除目录及其所有内容
+		err = os.RemoveAll(fullPath)
+	} else {
+		// 删除单个文件
+		err = os.Remove(fullPath)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  0,
+			"error": "删除文件失败: " + err.Error(),
+		})
+		return
+	}
+
+	// 删除成功
+	c.JSON(http.StatusOK, gin.H{
+		"code":    1,
+		"message": "文件删除成功",
+		"path":    targetPath,
 	})
 }
 
@@ -274,4 +339,25 @@ func dict(values ...interface{}) (map[string]interface{}, error) {
 		dict[key] = values[i+1]
 	}
 	return dict, nil
+}
+
+// 安全地验证路径是否在h5目录下
+func isPathSafe(targetPath string) bool {
+	// 安全检查：防止目录穿越
+	if strings.Contains(targetPath, "..") || strings.HasPrefix(targetPath, "/") || strings.HasPrefix(targetPath, "\\") {
+		return false
+	}
+	// 构建完整的文件路径
+	fullPath := filepath.Join("./h5", targetPath)
+	// 确保路径在h5目录下（规范化路径后再次检查）
+	absBasePath, _ := filepath.Abs("./h5")
+	absFilePath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return false
+	}
+	// 确保目标文件在h5目录下
+	if !strings.HasPrefix(absFilePath, absBasePath) {
+		return false
+	}
+	return true
 }

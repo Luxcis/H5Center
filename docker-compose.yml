@@ -1,0 +1,8 @@
+services:
+  h5:
+    build: .
+    image: h5
+    container_name: h5
+    ports:
+      - "127.0.0.1:9191:8080"
+    restart: always

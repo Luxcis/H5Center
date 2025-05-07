@@ -347,6 +347,10 @@ func isPathSafe(targetPath string) bool {
 	if strings.Contains(targetPath, "..") || strings.HasPrefix(targetPath, "/") || strings.HasPrefix(targetPath, "\\") {
 		return false
 	}
+	// 禁止删除index
+	if strings.Contains(targetPath, "index") {
+		return false
+	}
 	// 构建完整的文件路径
 	fullPath := filepath.Join("./h5", targetPath)
 	// 确保路径在h5目录下（规范化路径后再次检查）

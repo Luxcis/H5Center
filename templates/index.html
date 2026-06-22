@@ -5,220 +5,475 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #22c55e;
+            --hover-bg: #f1f5f9;
+            --folder-color: #f59e0b;
+            --file-color: #3b82f6;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+            --radius: 8px;
+            --radius-sm: 6px;
         }
 
-        h1 {
-            color: #2c3e50;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
+            padding: 32px 24px 48px;
         }
 
-        .file-tree {
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
         }
 
-        .directory, .file {
-            margin: 5px 0;
-            padding: 5px 0;
-        }
-
-        .directory > span {
-            cursor: pointer;
-            font-weight: bold;
-            color: #2c3e50;
-            display: inline-block;
-            padding: 2px 5px;
-            border-radius: 3px;
-            transition: background-color 0.2s;
-        }
-
-        .directory > span:hover {
-            background-color: #f0f0f0;
-        }
-
-        .file a {
-            color: #34495e;
-            text-decoration: none;
-            padding: 2px 5px;
-            border-radius: 3px;
-            transition: background-color 0.2s;
-            display: inline-block;
-        }
-
-        .file a:hover {
-            background-color: #f0f0f0;
-            text-decoration: underline;
-        }
-
-        .children {
-            margin-left: 20px;
-            border-left: 1px solid #ddd;
-            padding-left: 15px;
-            margin-top: 5px;
-        }
-
-        .size {
-            color: #7f8c8d;
-            font-size: 0.85em;
-            margin-left: 10px;
-        }
-
-        .empty {
-            color: #95a5a6;
-            font-style: italic;
-            padding: 5px;
-        }
-
-        .toggle {
-            font-size: 10px;
-            margin-right: 5px;
-            transition: transform 0.2s;
-            display: inline-block;
+        .stats {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 24px;
         }
 
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            font-size: 0.9rem;
         }
 
-        .folder-icon {
-            color: #f39c12;
+        .error strong {
+            font-weight: 600;
         }
 
-        .file-icon {
-            color: #3498db;
+        .file-tree {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
         }
 
-        .actions {
-            margin-left: 10px;
-            display: inline-block;
+        /* ===== Tree Row ===== */
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            transition: background-color 0.15s ease;
+            cursor: default;
         }
 
+        .tree-row:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .directory > .tree-row {
+            cursor: pointer;
+        }
+
+        /* ===== Toggle Arrow (CSS 三角形) ===== */
+        .toggle-arrow {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .toggle-arrow::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid var(--text-secondary);
+        }
+
+        .directory.collapsed > .tree-row .toggle-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .toggle-placeholder {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ===== Icons ===== */
+        .icon-folder, .icon-file {
+            flex-shrink: 0;
+        }
+
+        .icon-folder {
+            color: var(--folder-color);
+        }
+
+        .icon-file {
+            color: var(--file-color);
+        }
+
+        /* ===== Item Name ===== */
+        .item-name {
+            font-size: 0.9375rem;
+            color: var(--text);
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-row .item-name {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .file-row .item-name:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        /* ===== Size ===== */
+        .size {
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            flex-shrink: 0;
+            margin-left: auto;
+            padding-right: 4px;
+        }
+
+        /* ===== Children ===== */
+        .children {
+            margin-left: 9px;
+            border-left: 1.5px solid var(--border);
+            padding-left: 16px;
+        }
+
+        .directory.collapsed > .children {
+            display: none;
+        }
+
+        .empty {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.875rem;
+            padding: 6px 12px;
+        }
+
+        /* ===== Delete Button ===== */
         .delete-btn {
             cursor: pointer;
-            color: #e74c3c;
+            color: var(--text-secondary);
             background: none;
-            border: none;
-            font-size: 0.9em;
-            padding: 2px 5px;
-            border-radius: 3px;
+            border: 1px solid transparent;
+            font-size: 0.8125rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            line-height: 1.4;
         }
 
         .delete-btn:hover {
-            background-color: #fee;
+            color: var(--danger);
+            background-color: #fef2f2;
+            border-color: #fecaca;
         }
 
+        .delete-btn:active {
+            transform: scale(0.97);
+        }
+
+        .delete-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ===== Modal ===== */
         .modal {
-            display: none;
             position: fixed;
+            inset: 0;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 16px;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            max-width: 80%;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            width: 420px;
+            max-width: 100%;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
         }
 
         .modal-title {
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #e74c3c;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-body {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            word-break: break-all;
         }
 
         .modal-buttons {
-            text-align: right;
-            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         .btn-cancel, .btn-confirm {
-            padding: 8px 15px;
+            padding: 9px 18px;
             border: none;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            margin-left: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
         }
 
         .btn-cancel {
-            background-color: #f1f1f1;
+            background: var(--hover-bg);
+            color: var(--text);
+        }
+
+        .btn-cancel:hover {
+            background: var(--border);
         }
 
         .btn-confirm {
-            background-color: #e74c3c;
+            background: var(--danger);
             color: white;
         }
 
+        .btn-confirm:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-confirm:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel:active, .btn-confirm:active {
+            transform: scale(0.97);
+        }
+
+        /* ===== Toast ===== */
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #333;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: var(--radius);
             color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            display: none;
             z-index: 1001;
-            opacity: 0;
-            transition: opacity 0.3s;
+            font-size: 0.9rem;
+            font-weight: 500;
+            max-width: 380px;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(calc(100% + 32px));
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(0);
         }
 
         .toast.success {
-            background-color: #27ae60;
+            background-color: #166534;
+            border-left: 4px solid var(--success);
         }
 
         .toast.error {
-            background-color: #c0392b;
+            background-color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        /* ===== Responsive: Tablet ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px 36px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .file-tree {
+                padding: 16px;
+            }
+
+            .tree-row {
+                padding: 6px 10px;
+            }
+
+            .children {
+                margin-left: 6px;
+                padding-left: 12px;
+            }
+
+            .modal-content {
+                width: 100%;
+            }
+        }
+
+        /* ===== Responsive: Mobile ===== */
+        @media (max-width: 480px) {
+            .container {
+                padding: 14px 10px 28px;
+            }
+
+            h1 {
+                font-size: 1.35rem;
+            }
+
+            .file-tree {
+                padding: 14px;
+            }
+
+            .tree-row {
+                padding: 8px 10px;
+                gap: 6px;
+            }
+
+            .children {
+                margin-left: 4px;
+                padding-left: 10px;
+            }
+
+            .delete-btn {
+                padding: 6px 12px;
+                font-size: 0.875rem;
+            }
+
+            .modal {
+                align-items: flex-end;
+                padding: 0;
+            }
+
+            .modal-content {
+                width: 100%;
+                padding: 20px;
+                border-radius: 12px 12px 0 0;
+                transform: translateY(100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .modal.active .modal-content {
+                transform: translateY(0);
+            }
+
+            .toast {
+                left: 12px;
+                right: 12px;
+                bottom: 16px;
+                max-width: none;
+            }
+
+            .btn-cancel, .btn-confirm {
+                flex: 1;
+                text-align: center;
+                padding: 11px 16px;
+            }
+
+            .modal-buttons {
+                gap: 8px;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>{{ .Title }}</h1>
+    <div class="stats" id="stats"></div>
 
     {{if .Error}}
     <div class="error">
         <strong>错误:</strong> {{ .Error }}
     </div>
     {{else}}
-    <div class="file-tree">
+    <div class="file-tree" id="fileTree">
         {{ template "fileNode" dict "Node" .RootNode "FormatSize" .FormatSize }}
     </div>
     {{end}}
 </div>
 
-<!-- 在body最后添加确认对话框和提示框 -->
-<div class="modal" id="deleteModal">
+<!-- 删除确认对话框 -->
+<div aria-labelledby="modalTitle" aria-modal="true" class="modal" id="deleteModal" role="dialog">
     <div class="modal-content">
-        <div class="modal-title">确认删除</div>
-        <p id="deleteMessage">确定要删除这个文件吗？此操作不可恢复。</p>
+        <div class="modal-title" id="modalTitle">
+            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                 stroke-width="2"
+                 viewBox="0 0 24 24" width="20">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" x2="12" y1="8" y2="12"/>
+                <line x1="12" x2="12.01" y1="16" y2="16"/>
+            </svg>
+            确认删除
+        </div>
+        <div class="modal-body" id="deleteMessage"></div>
         <div class="modal-buttons">
             <button class="btn-cancel" id="cancelDelete">取消</button>
             <button class="btn-confirm" id="confirmDelete">删除</button>
@@ -226,114 +481,193 @@
     </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- Toast 通知 -->
+<div aria-live="polite" class="toast" id="toast" role="status"></div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // 添加目录展开/折叠功能
-        document.querySelectorAll('.directory > span').forEach(function (dirSpan) {
-            dirSpan.addEventListener('click', function () {
-                const children = this.nextElementSibling;
-                const toggle = this.querySelector('.toggle');
+    (function () {
+        'use strict';
 
-                if (children.style.display === 'none') {
-                    children.style.display = 'block';
-                    toggle.style.transform = 'rotate(0deg)';
-                    toggle.textContent = '▼ ';
-                } else {
-                    children.style.display = 'none';
-                    toggle.style.transform = 'rotate(-90deg)';
-                    toggle.textContent = '► ';
-                }
-            });
-        });
-
-        // 添加删除功能
-        const modal = document.getElementById('deleteModal');
-        const deleteMessage = document.getElementById('deleteMessage');
-        const cancelDelete = document.getElementById('cancelDelete');
-        const confirmDelete = document.getElementById('confirmDelete');
-        const toast = document.getElementById('toast');
-        let currentPath = '';
-        let isDir = false;
-
-        // 为所有删除按钮添加点击事件
-        document.querySelectorAll('.delete-btn').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation(); // 阻止冒泡，避免触发目录展开/折叠
-                currentPath = this.getAttribute('data-path');
-                isDir = this.getAttribute('data-is-dir') === 'true';
-
-                // 更新确认消息
-                if (isDir) {
-                    deleteMessage.textContent = `确定要删除目录 "${currentPath}" 及其所有内容吗？此操作不可恢复。`;
-                } else {
-                    deleteMessage.textContent = `确定要删除文件 "${currentPath}" 吗？此操作不可恢复。`;
-                }
-
-                // 显示确认对话框
-                modal.style.display = 'block';
-            });
-        });
-
-        // 取消删除
-        cancelDelete.addEventListener('click', function () {
-            modal.style.display = 'none';
-        });
-
-        // 点击modal背景关闭
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
-                modal.style.display = 'none';
+        /* ===== 文件统计 ===== */
+        function updateStats() {
+            var dirCount = document.querySelectorAll('#fileTree .directory').length;
+            var fileCount = document.querySelectorAll('#fileTree .file').length;
+            var stats = document.getElementById('stats');
+            if (stats) {
+                stats.textContent = '共 ' + dirCount + ' 个目录 / ' + fileCount + ' 个文件';
             }
-        });
+        }
 
-        // 确认删除
-        confirmDelete.addEventListener('click', function () {
-            // 发送删除请求
-            fetch(`/api/delete?path=${encodeURIComponent(currentPath)}`, {
-                method: 'DELETE'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    modal.style.display = 'none';
+        /* ===== 目录展开/折叠 ===== */
+        function toggleDirectory(dirElement) {
+            dirElement.classList.toggle('collapsed');
+        }
 
-                    if (data.code === 1) {
-                        // 显示成功提示
-                        showToast('删除成功', 'success');
-                        // 刷新页面展示最新文件列表
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        // 显示错误提示
-                        showToast(`删除失败: ${data.error}`, 'error');
-                    }
-                })
-                .catch(error => {
-                    modal.style.display = 'none';
-                    showToast(`请求错误: ${error}`, 'error');
-                });
-        });
+        /* ===== Toast 通知 ===== */
+        var toastTimer = null;
+        var toastEl = document.getElementById('toast');
 
-        // 显示提示框
-        function showToast(message, type = 'success') {
-            toast.textContent = message;
-            toast.className = `toast ${type}`;
-            toast.style.display = 'block';
+        function showToast(message, type) {
+            if (!toastEl) return;
 
-            // 淡入
-            setTimeout(() => {
-                toast.style.opacity = '1';
-            }, 10);
+            /* Bug 2 修复: 清除之前的 timeout，避免连续弹出叠加 */
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+                toastTimer = null;
+            }
 
-            // 3秒后淡出
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                }, 300);
+            /* 先移除 show 类以便重新触发滑入动画 */
+            toastEl.classList.remove('show', 'success', 'error');
+
+            /* 强制回流，确保动画重新触发 */
+            void toastEl.offsetWidth;
+
+            toastEl.textContent = message;
+            toastEl.classList.add('show', type);
+
+            /* 3 秒后自动消失 */
+            toastTimer = setTimeout(function () {
+                toastEl.classList.remove('show');
+                toastTimer = null;
             }, 3000);
         }
-    });
+
+        /* ===== Modal 控制 ===== */
+        var modal = document.getElementById('deleteModal');
+        var deleteMessage = document.getElementById('deleteMessage');
+        var cancelBtn = document.getElementById('cancelDelete');
+        var confirmBtn = document.getElementById('confirmDelete');
+        var currentPath = '';
+        var currentIsDir = false;
+        var deleteInProgress = false;
+
+        function openModal(path, isDir, itemName) {
+            if (deleteInProgress) return;
+
+            currentPath = path;
+            currentIsDir = isDir;
+
+            if (isDir) {
+                deleteMessage.textContent = '确定要删除目录 "' + itemName + '" 及其所有内容吗？此操作不可恢复。';
+            } else {
+                deleteMessage.textContent = '确定要删除文件 "' + itemName + '" 吗？此操作不可恢复。';
+            }
+
+            /* Bug 3 修复: 重置按钮状态 */
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '删除';
+
+            modal.classList.add('active');
+            cancelBtn.focus();
+        }
+
+        function closeModal() {
+            if (deleteInProgress) return;
+            modal.classList.remove('active');
+        }
+
+        /* ===== 执行删除 ===== */
+        function performDelete() {
+            if (deleteInProgress) return;
+            deleteInProgress = true;
+
+            /* Bug 3 修复: 请求期间禁用按钮，防止重复点击 */
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '删除中...';
+
+            fetch('/api/delete?path=' + encodeURIComponent(currentPath), {
+                method: 'DELETE'
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    deleteInProgress = false;
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '删除';
+                    closeModal();
+
+                    if (data.code === 1) {
+                        showToast('删除成功', 'success');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showToast('删除失败: ' + (data.error || '未知错误'), 'error');
+                    }
+                })
+                .catch(function (error) {
+                    deleteInProgress = false;
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '删除';
+                    closeModal();
+                    showToast('请求错误: ' + error, 'error');
+                });
+        }
+
+        /* ===== 事件绑定 ===== */
+        function init() {
+            updateStats();
+
+            /* Bug 1 修复: 使用事件委托 + closest，完全避开 nextElementSibling 问题 */
+            var fileTree = document.getElementById('fileTree');
+            if (fileTree) {
+                fileTree.addEventListener('click', function (e) {
+                    /* 检查是否点击了删除按钮（优先级高于目录切换） */
+                    var deleteBtn = e.target.closest('.delete-btn');
+                    if (deleteBtn) {
+                        e.stopPropagation();
+                        var path = deleteBtn.getAttribute('data-path');
+                        var isDir = deleteBtn.getAttribute('data-is-dir') === 'true';
+                        var name = path.split('/').pop();
+                        openModal(path, isDir, name);
+                        return;
+                    }
+
+                    /* 检查是否点击了目录行 */
+                    var treeRow = e.target.closest('.tree-row');
+                    if (treeRow) {
+                        var parent = treeRow.parentElement;
+                        if (parent && parent.classList.contains('directory')) {
+                            toggleDirectory(parent);
+                        }
+                    }
+                });
+            }
+
+            /* Modal 按钮事件 */
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', performDelete);
+            }
+
+            /* 点击遮罩层关闭 Modal */
+            if (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
+
+            /* ESC 关闭 Modal */
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+                    closeModal();
+                }
+            });
+        }
+
+        /* DOMContentLoaded 初始化 */
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
 </script>
 </body>
 </html>
@@ -342,9 +676,15 @@
 {{with .Node}}
 {{if .IsDir}}
 <div class="directory">
-    <span><span class="toggle">▼ </span><span class="folder-icon">📁</span> {{.Name}}</span>
-    <div class="actions">
-        <button class="delete-btn" data-is-dir="true" data-path="{{.Path}}">删除</button>
+    <div class="tree-row">
+        <span class="toggle-arrow"></span>
+        <svg class="icon-folder" fill="none" height="18" stroke="currentColor" stroke-linecap="round"
+             stroke-linejoin="round"
+             stroke-width="2" viewBox="0 0 24 24" width="18">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="item-name">{{.Name}}</span>
+        <button aria-label="删除 {{.Name}}" class="delete-btn" data-is-dir="true" data-path="{{.Path}}">删除</button>
     </div>
     <div class="children">
         {{if eq (len .Children) 0}}
@@ -358,10 +698,17 @@
 </div>
 {{else}}
 <div class="file">
-    <span><span class="file-icon">📄</span> <a href="/h5/{{.Path}}" target="_blank">{{.Name}}</a></span>
-    <span class="size">{{call $.FormatSize .Size}}</span>
-    <div class="actions">
-        <button class="delete-btn" data-is-dir="false" data-path="{{.Path}}">删除</button>
+    <div class="tree-row file-row">
+        <span class="toggle-placeholder"></span>
+        <svg class="icon-file" fill="none" height="18" stroke="currentColor" stroke-linecap="round"
+             stroke-linejoin="round"
+             stroke-width="2" viewBox="0 0 24 24" width="18">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <a class="item-name" href="/h5/{{.Path}}" rel="noopener noreferrer" target="_blank">{{.Name}}</a>
+        <span class="size">{{call $.FormatSize .Size}}</span>
+        <button aria-label="删除 {{.Name}}" class="delete-btn" data-is-dir="false" data-path="{{.Path}}">删除</button>
     </div>
 </div>
 {{end}}

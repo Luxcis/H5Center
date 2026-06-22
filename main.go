@@ -3,14 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // FileNode 表示文件树中的一个节点
@@ -23,6 +25,7 @@ type FileNode struct {
 }
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.SetFuncMap(template.FuncMap{
 		"dict": dict,
@@ -42,9 +45,10 @@ func index(c *gin.Context) {
 	// 扫描h5目录
 	rootNode, err := scanDirectory("./h5")
 	if err != nil {
+		log.Printf("目录扫描失败: %v", err)
 		c.HTML(http.StatusInternalServerError, "index.html", gin.H{
 			"Title": "文件浏览器 - 错误",
-			"Error": err.Error(),
+			"Error": "目录扫描失败",
 		})
 		return
 	}
@@ -61,23 +65,33 @@ func upload(c *gin.Context) {
 	// 从表单中获取文件
 	file, err := c.FormFile("file")
 	if err != nil {
+		log.Printf("文件接收失败: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":  0,
-			"error": "文件接收失败: " + err.Error(),
+			"error": "文件接收失败",
 		})
 		return
 	}
 	// 获取文件大小
 	fileSize := file.Size
+	// 文件大小限制 50MB
+	if fileSize > 50*1024*1024 {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"code":  0,
+			"error": "文件大小超过限制",
+		})
+		return
+	}
 	// 获取fileName参数
 	fileName := c.PostForm("fileName")
 	// 基础保存目录
 	baseDir := "./h5"
 	// 确保基础目录存在
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
+		log.Printf("创建基础保存目录失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  0,
-			"error": "创建基础保存目录失败: " + err.Error(),
+			"error": "创建保存目录失败",
 		})
 		return
 	}
@@ -87,6 +101,13 @@ func upload(c *gin.Context) {
 	if fileName == "" {
 		// 如果fileName为空，使用原始文件名
 		finalFileName = file.Filename
+		if !isPathSafe(finalFileName) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  0,
+				"error": "文件名包含不安全的路径",
+			})
+			return
+		}
 		targetPath = filepath.Join(baseDir, finalFileName)
 	} else {
 		// 安全检查：确保fileName不包含路径穿越
@@ -110,16 +131,27 @@ func upload(c *gin.Context) {
 		// 如果fileName包含路径，确保目录存在
 		dir := filepath.Dir(targetPath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
+			log.Printf("创建目录结构失败: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "创建目录结构失败: " + err.Error(),
+				"error": "创建目录结构失败",
 			})
 			return
 		}
 	}
+	// 检查文件扩展名，只允许 .html 和 .htm
+	ext := strings.ToLower(filepath.Ext(finalFileName))
+	if ext != ".html" && ext != ".htm" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  0,
+			"error": "不支持的文件类型",
+		})
+		return
+	}
 	// 保存文件
 	if err := c.SaveUploadedFile(file, targetPath); err != nil {
+		log.Printf("文件保存失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "保存文件失败: " + err.Error(),
+			"error": "文件保存失败",
 		})
 		return
 	}
@@ -169,9 +201,10 @@ func deleteH5(c *gin.Context) {
 				"error": "文件不存在",
 			})
 		} else {
+			log.Printf("获取文件信息失败: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":  0,
-				"error": "获取文件信息失败: " + err.Error(),
+				"error": "获取文件信息失败",
 			})
 		}
 		return
@@ -187,9 +220,10 @@ func deleteH5(c *gin.Context) {
 	}
 
 	if err != nil {
+		log.Printf("删除文件失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  0,
-			"error": "删除文件失败: " + err.Error(),
+			"error": "删除文件失败",
 		})
 		return
 	}
@@ -343,12 +377,21 @@ func dict(values ...interface{}) (map[string]interface{}, error) {
 
 // 安全地验证路径是否在h5目录下
 func isPathSafe(targetPath string) bool {
+	// 空字符串检查
+	if targetPath == "" {
+		return false
+	}
+	// . 路径拦截
+	if targetPath == "." {
+		return false
+	}
 	// 安全检查：防止目录穿越
 	if strings.Contains(targetPath, "..") || strings.HasPrefix(targetPath, "/") || strings.HasPrefix(targetPath, "\\") {
 		return false
 	}
-	// 禁止删除index
-	if strings.Contains(targetPath, "index") {
+	// 禁止删除以 index 开头的文件/目录
+	basename := filepath.Base(targetPath)
+	if strings.HasPrefix(basename, "index") {
 		return false
 	}
 	// 构建完整的文件路径

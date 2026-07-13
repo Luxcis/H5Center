@@ -389,9 +389,8 @@ func isPathSafe(targetPath string) bool {
 	if strings.Contains(targetPath, "..") || strings.HasPrefix(targetPath, "/") || strings.HasPrefix(targetPath, "\\") {
 		return false
 	}
-	// 禁止删除以 index 开头的文件/目录
-	basename := filepath.Base(targetPath)
-	if strings.HasPrefix(basename, "index") {
+	// 禁止删除根目录下的 index.html/index.htm，子目录中的不受影响
+	if targetPath == "index.html" || targetPath == "index.htm" {
 		return false
 	}
 	// 构建完整的文件路径

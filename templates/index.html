@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
     <title>{{ .Title }}</title>
+    <link href="/h5/favicon.ico" rel="icon" type="image/x-icon">
+    <link href="/h5/favicon.svg" rel="icon" type="image/svg+xml">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -219,6 +221,20 @@
         .delete-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .protected-badge {
+            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            flex-shrink: 0;
+            line-height: 1.4;
+            cursor: default;
+            user-select: none;
         }
 
         /* ===== Modal ===== */
@@ -708,7 +724,11 @@
         </svg>
         <a class="item-name" href="/h5/{{.Path}}" rel="noopener noreferrer" target="_blank">{{.Name}}</a>
         <span class="size">{{call $.FormatSize .Size}}</span>
+        {{if eq .Path "index.html"}}
+        <span class="protected-badge">受保护</span>
+        {{else}}
         <button aria-label="删除 {{.Name}}" class="delete-btn" data-is-dir="false" data-path="{{.Path}}">删除</button>
+        {{end}}
     </div>
 </div>
 {{end}}

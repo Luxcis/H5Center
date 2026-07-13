@@ -9,6 +9,7 @@ WORKDIR /app
 COPY --from=builder /app/h5 ./h5
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/main ./main
+COPY --from=builder /app/favicon.ico ./favicon.ico
 
 FROM scratch
 WORKDIR /app

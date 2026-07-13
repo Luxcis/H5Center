@@ -32,6 +32,7 @@ func main() {
 	})
 	r.LoadHTMLGlob("templates/*")
 	r.StaticFS("/h5", http.Dir("./h5"))
+	r.StaticFile("/favicon.ico", "./templates/favicon.ico")
 	r.GET("/", index)
 	r.POST("/api/upload", upload)
 	r.DELETE("/api/delete", deleteH5)
